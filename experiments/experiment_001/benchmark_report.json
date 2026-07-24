@@ -1,0 +1,10 @@
+{
+  "avg_inference_time_ms": 5.4527,
+  "min_inference_time_ms": 4.5022,
+  "max_inference_time_ms": 16.4035,
+  "throughput_per_second": 183.4,
+  "memory_used_mb": 0.41,
+  "model_size_kb": 72141.23,
+  "suitable_for_realtime": true,
+  "conclusion": "Average inference time of 5.4527ms supports real-time webcam recognition at 30 FPS. Model is suitable for real-time use."
+}

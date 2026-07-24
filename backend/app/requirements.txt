@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-jose
+passlib
+bcrypt==4.0.1
+python-multipart
+sqlalchemy
+psycopg2-binary
+pymongo
+mediapipe
+opencv-python
+numpy
+pandas
+pydantic[email]
+python-dotenv
+scikit-learn
+psutil
