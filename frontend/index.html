@@ -5,824 +5,570 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign Language Practice</title>
 <style>
-  /* ── Tokens ─────────────────────────────────────────────────────────── */
   :root {
-    --bg:        #0d0f12;
-    --surface:   #161920;
-    --border:    #252830;
-    --accent:    #4ade80;       /* green — correct */
-    --wrong:     #f87171;       /* red  — incorrect */
-    --muted:     #6b7280;
-    --text:      #f1f5f9;
-    --subtext:   #94a3b8;
-    --card:      #1e2330;
-    --radius:    12px;
-    --font:      'Inter', system-ui, sans-serif;
-    --mono:      'JetBrains Mono', 'Fira Code', monospace;
+    --bg:#0d0f12;--surface:#161920;--border:#252830;--accent:#4ade80;
+    --wrong:#f87171;--muted:#6b7280;--text:#f1f5f9;--subtext:#94a3b8;
+    --card:#1e2330;--radius:12px;--font:'Inter',system-ui,sans-serif;
+    --mono:'JetBrains Mono','Fira Code',monospace;
   }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  /* ── Layout ─────────────────────────────────────────────────────────── */
-  header {
-    width: 100%;
-    padding: 18px 32px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: var(--surface);
-  }
-  header .logo { font-size: 13px; font-weight: 600; letter-spacing: .06em;
-                 text-transform: uppercase; color: var(--accent); }
-  header .title { font-size: 15px; color: var(--subtext); }
-
-  main { width: 100%; max-width: 900px; padding: 36px 24px; }
-
-  .screen { display: none; }
-  .screen.active { display: block; }
-
-  /* ── Letter selection ────────────────────────────────────────────────── */
-  .screen-title {
-    font-size: 22px; font-weight: 700; margin-bottom: 6px;
-  }
-  .screen-sub { color: var(--subtext); font-size: 14px; margin-bottom: 28px; }
-
-  .letter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 10px;
-    margin-bottom: 32px;
-  }
-  .letter-btn {
-    aspect-ratio: 1;
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    background: var(--card);
-    color: var(--text);
-    font-size: 20px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all .15s;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .letter-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .letter-btn.selected {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #0d0f12;
-  }
-
-  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  .select-hint { color: var(--subtext); font-size: 13px; }
-
-  /* ── Buttons ─────────────────────────────────────────────────────────── */
-  .btn {
-    padding: 10px 24px;
-    border-radius: 8px;
-    border: none;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity .15s, transform .1s;
-  }
-  .btn:active { transform: scale(.97); }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .btn-primary { background: var(--accent); color: #0d0f12; }
-  .btn-primary:hover:not(:disabled) { opacity: .88; }
-  .btn-danger  { background: var(--wrong);  color: #0d0f12; }
-  .btn-danger:hover:not(:disabled)  { opacity: .88; }
-  .btn-ghost   { background: var(--border); color: var(--text); }
-  .btn-ghost:hover  { background: #2d3240; }
-
-  /* ── Practice screen ────────────────────────────────────────────────── */
-  .practice-layout {
-    display: grid;
-    grid-template-columns: 1fr 360px;
-    gap: 24px;
-  }
-  @media (max-width: 720px) {
-    .practice-layout { grid-template-columns: 1fr; }
-  }
-
-  .cam-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-    position: relative;
-  }
-  .cam-card video {
-    width: 100%; display: block;
-    background: #000; min-height: 300px;
-  }
-
-  /* Validation overlay */
-  .cam-overlay {
-    position: absolute; inset: 0;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(13,15,18,.75);
-    font-size: 14px; color: var(--wrong);
-    padding: 16px; text-align: center;
-    display: none;
-  }
-
-  .cam-actions {
-    padding: 16px;
-    display: flex; gap: 10px; justify-content: space-between; align-items: center;
-  }
-
-  /* Target letter display */
-  .target-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    display: flex; flex-direction: column; gap: 16px;
-  }
-  .target-label { font-size: 11px; font-weight: 600; letter-spacing: .1em;
-                  text-transform: uppercase; color: var(--muted); }
-
-  .target-letter {
-    font-size: 96px; font-weight: 900; line-height: 1;
-    font-family: var(--mono);
-    color: var(--accent);
-    text-align: center;
-    padding: 12px 0;
-  }
-
-  /* Result badge */
-  .result-badge {
-    border-radius: 8px;
-    padding: 14px 16px;
-    display: none;
-    align-items: center;
-    gap: 10px;
-    font-size: 15px;
-    font-weight: 600;
-  }
-  .result-badge.correct  { background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.3); color: var(--accent); }
-  .result-badge.incorrect{ background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.3); color: var(--wrong);  }
-  .result-badge.show     { display: flex; }
-
-  .predicted-letter {
-    font-family: var(--mono);
-    font-size: 32px; font-weight: 900;
-    min-width: 40px;
-  }
-  .result-detail { display: flex; flex-direction: column; gap: 2px; }
-  .result-label  { font-size: 12px; opacity: .7; font-weight: 400; }
-
-  /* Stats row */
-  .stats-row {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
-  }
-  .stat-box {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
-    text-align: center;
-  }
-  .stat-val { font-size: 22px; font-weight: 800; font-family: var(--mono); color: var(--accent); }
-  .stat-lbl { font-size: 11px; color: var(--subtext); margin-top: 2px; }
-
-  /* Progress bar */
-  .progress-bar-wrap {
-    background: var(--border);
-    border-radius: 99px;
-    height: 6px;
-    overflow: hidden;
-    margin-top: 4px;
-  }
-  .progress-bar-fill {
-    height: 100%; background: var(--accent);
-    border-radius: 99px;
-    transition: width .4s ease;
-  }
-
-  /* Validation message */
-  .validation-msg {
-    background: rgba(248,113,113,.1);
-    border: 1px solid rgba(248,113,113,.25);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--wrong);
-    display: none;
-  }
-  .validation-msg.show { display: block; }
-
-  /* Letter queue pill */
-  .queue-row {
-    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
-  }
-  .queue-pill {
-    padding: 3px 10px;
-    border-radius: 99px;
-    border: 1px solid var(--border);
-    font-size: 13px; font-weight: 700;
-    font-family: var(--mono);
-    color: var(--subtext);
-  }
-  .queue-pill.active {
-    background: var(--accent);
-    color: #0d0f12;
-    border-color: var(--accent);
-  }
-  .queue-pill.done {
-    background: var(--border);
-    color: var(--muted);
-    text-decoration: line-through;
-  }
-
-  /* ── Summary screen ─────────────────────────────────────────────────── */
-  .summary-header {
-    text-align: center;
-    padding: 32px 0 24px;
-  }
-  .big-accuracy {
-    font-size: 80px; font-weight: 900;
-    font-family: var(--mono);
-    line-height: 1;
-  }
-  .big-accuracy.high  { color: var(--accent); }
-  .big-accuracy.low   { color: var(--wrong);  }
-  .big-accuracy.mid   { color: #facc15; }
-
-  .summary-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin: 24px 0;
-  }
-  .summary-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px;
-  }
-  .summary-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase;
-                         letter-spacing: .06em; margin-bottom: 8px; }
-  .summary-card .value { font-size: 28px; font-weight: 800; font-family: var(--mono); }
-
-  .letter-breakdown {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 8px;
-    margin-bottom: 28px;
-  }
-  .lb-item {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-  }
-  .lb-letter { font-size: 24px; font-weight: 800; font-family: var(--mono); }
-  .lb-acc    { font-size: 13px; color: var(--subtext); }
-  .lb-item.perfect { border-color: rgba(74,222,128,.4); }
-  .lb-item.poor    { border-color: rgba(248,113,113,.3); }
-
-  .recs-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-  .recs-list li {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 13px; color: var(--subtext);
-    display: flex; gap: 8px; align-items: flex-start;
-  }
-  .recs-list li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
-
-  /* ── Spinner ────────────────────────────────────────────────────────── */
-  .spinner {
-    width: 16px; height: 16px;
-    border: 2px solid rgba(0,0,0,.3);
-    border-top-color: #0d0f12;
-    border-radius: 50%;
-    animation: spin .6s linear infinite;
-    display: inline-block; vertical-align: middle; margin-right: 6px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border);
-    margin: 24px 0;
-  }
-  .section-label {
-    font-size: 11px; font-weight: 600; letter-spacing: .1em;
-    text-transform: uppercase; color: var(--muted);
-    margin-bottom: 14px;
-  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;align-items:center;}
+  header{width:100%;padding:16px 32px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface);}
+  .logo{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+  .hdr-right{display:flex;gap:16px;align-items:center;}
+  .hdr-stat{display:flex;flex-direction:column;align-items:flex-end;}
+  .hdr-stat .v{font-size:16px;font-weight:700;color:var(--text);font-family:var(--mono);}
+  .hdr-stat .l{font-size:10px;color:var(--muted);text-transform:uppercase;}
+  main{width:100%;max-width:960px;padding:32px 20px;}
+  .screen{display:none;}.screen.active{display:block;}
+  .screen-title{font-size:22px;font-weight:700;margin-bottom:6px;}
+  .screen-sub{color:var(--subtext);font-size:14px;margin-bottom:24px;}
+  .mode-tabs{display:flex;margin-bottom:24px;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content;}
+  .mode-tab{padding:10px 22px;font-size:13px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--subtext);border:none;transition:all .15s;}
+  .mode-tab.active{background:var(--accent);color:#0d0f12;}
+  .letter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px;margin-bottom:24px;}
+  .letter-btn{aspect-ratio:1;border:1.5px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:18px;font-weight:700;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+  .letter-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .letter-btn.selected{background:var(--accent);border-color:var(--accent);color:#0d0f12;}
+  .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px;}
+  .select-hint{color:var(--subtext);font-size:13px;}
+  .btn{padding:10px 22px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s,transform .1s;}
+  .btn:active{transform:scale(.97);}.btn:disabled{opacity:.4;cursor:not-allowed;}
+  .btn-primary{background:var(--accent);color:#0d0f12;}.btn-primary:hover:not(:disabled){opacity:.88;}
+  .btn-danger{background:var(--wrong);color:#0d0f12;}.btn-danger:hover:not(:disabled){opacity:.88;}
+  .btn-ghost{background:var(--border);color:var(--text);}.btn-ghost:hover{background:#2d3240;}
+  .rec-banner{background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;}
+  .rec-label{font-size:11px;color:var(--accent);text-transform:uppercase;font-weight:700;letter-spacing:.08em;margin-bottom:4px;}
+  .rec-text{font-size:13px;color:var(--subtext);}
+  .rec-queue{display:flex;gap:6px;flex-wrap:wrap;}
+  .rec-pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;font-family:var(--mono);border:1px solid var(--border);color:var(--subtext);}
+  .rec-pill.next{background:var(--accent);color:#0d0f12;border-color:var(--accent);}
+  .practice-layout{display:grid;grid-template-columns:1fr 360px;gap:20px;}
+  @media(max-width:720px){.practice-layout{grid-template-columns:1fr;}}
+  .cam-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;}
+  .cam-card video{width:100%;display:block;background:#000;min-height:280px;}
+  .cam-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(13,15,18,.8);font-size:14px;color:var(--wrong);padding:16px;text-align:center;}
+  .cam-actions{padding:14px 16px;display:flex;gap:10px;justify-content:space-between;align-items:center;}
+  .right-panel{display:flex;flex-direction:column;gap:12px;}
+  .target-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+  .target-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .target-letter{font-size:88px;font-weight:900;line-height:1;font-family:var(--mono);color:var(--accent);text-align:center;padding:8px 0;}
+  .ref-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .ref-tips{font-size:12px;color:var(--subtext);line-height:1.7;}
+  .ref-tips strong{color:var(--text);}
+  .result-badge{border-radius:8px;padding:12px 14px;display:none;align-items:center;gap:10px;font-size:14px;font-weight:600;}
+  .result-badge.correct{background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.3);color:var(--accent);display:flex;}
+  .result-badge.incorrect{background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.3);color:var(--wrong);display:flex;}
+  .predicted-letter{font-family:var(--mono);font-size:28px;font-weight:900;min-width:36px;}
+  .result-detail{display:flex;flex-direction:column;gap:2px;}
+  .result-sub{font-size:11px;opacity:.7;font-weight:400;}
+  .feedback-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--subtext);line-height:1.6;display:none;}
+  .feedback-box.show{display:block;}
+  .feedback-box .tip{color:var(--accent);font-weight:600;}
+  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+  .stat-val{font-size:20px;font-weight:800;font-family:var(--mono);color:var(--accent);}
+  .stat-lbl{font-size:10px;color:var(--subtext);margin-top:2px;}
+  .progress-bar-wrap{background:var(--border);border-radius:99px;height:5px;overflow:hidden;margin-top:3px;}
+  .progress-bar-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .4s ease;}
+  .validation-msg{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--wrong);display:none;margin-top:8px;}
+  .validation-msg.show{display:block;}
+  .summary-header{text-align:center;padding:28px 0 20px;}
+  .big-accuracy{font-size:76px;font-weight:900;font-family:var(--mono);line-height:1;}
+  .big-accuracy.high{color:var(--accent);}.big-accuracy.low{color:var(--wrong);}.big-accuracy.mid{color:#facc15;}
+  .summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin:20px 0;}
+  .summary-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+  .summary-card .label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+  .summary-card .value{font-size:26px;font-weight:800;font-family:var(--mono);}
+  .letter-breakdown{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:24px;}
+  .lb-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;}
+  .lb-letter{font-size:22px;font-weight:800;font-family:var(--mono);}
+  .lb-acc{font-size:12px;color:var(--subtext);}
+  .lb-item.perfect{border-color:rgba(74,222,128,.4);}.lb-item.poor{border-color:rgba(248,113,113,.3);}
+  .recs-list{list-style:none;display:flex;flex-direction:column;gap:6px;}
+  .recs-list li{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--subtext);display:flex;gap:8px;align-items:flex-start;}
+  .recs-list li::before{content:"→";color:var(--accent);flex-shrink:0;}
+  .dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px;}
+  .dash-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;}
+  .dash-card .v{font-size:24px;font-weight:800;font-family:var(--mono);}
+  .dash-card .l{font-size:10px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;}
+  .state-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;}
+  .state-pill{padding:4px 12px;border-radius:99px;font-size:12px;font-weight:600;}
+  .state-pill.not_attempted{background:rgba(107,114,128,.2);color:var(--muted);}
+  .state-pill.learning{background:rgba(250,204,21,.15);color:#facc15;}
+  .state-pill.improving{background:rgba(96,165,250,.15);color:#60a5fa;}
+  .state-pill.mastered{background:rgba(74,222,128,.15);color:var(--accent);}
+  .state-pill.needs_revision{background:rgba(248,113,113,.15);color:var(--wrong);}
+  .trend-row{display:flex;gap:8px;align-items:flex-end;height:60px;margin-bottom:24px;}
+  .trend-bar{flex:1;border-radius:4px 4px 0 0;background:var(--accent);opacity:.7;min-height:4px;}
+  .spinner{width:14px;height:14px;border:2px solid rgba(0,0,0,.3);border-top-color:#0d0f12;border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  hr.divider{border:none;border-top:1px solid var(--border);margin:20px 0;}
+  .section-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
 </style>
 </head>
 <body>
-
 <header>
-  <span class="logo">ASL</span>
-  <span class="title">Sign Language Learning & Assessment Platform</span>
+  <span class="logo">ASL Platform</span>
+  <div class="hdr-right" id="hdrStats" style="display:none">
+    <div class="hdr-stat"><span class="v" id="hdrAcc">–</span><span class="l">Accuracy</span></div>
+    <div class="hdr-stat"><span class="v" id="hdrSessions">–</span><span class="l">Sessions</span></div>
+    <div class="hdr-stat"><span class="v" id="hdrMastered">–</span><span class="l">Mastered</span></div>
+    <button class="btn btn-ghost" style="font-size:12px;padding:6px 14px" onclick="showDashboard()">Dashboard</button>
+  </div>
 </header>
-
 <main>
 
-  <!-- ── Screen 1: Letter Selection ─────────────────────────────────── -->
-  <div class="screen active" id="screen-select">
-    <div class="screen-title">Choose letters to practice</div>
-    <p class="screen-sub">Select one or more letters, then start your practice session.</p>
-
+<!-- Screen 1: Select -->
+<div class="screen active" id="screen-select">
+  <div class="screen-title">Start a practice session</div>
+  <p class="screen-sub">Choose AI-guided or manual letter selection.</p>
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-ai" onclick="setMode('ai')">AI Recommends</button>
+    <button class="mode-tab" id="tab-manual" onclick="setMode('manual')">Manual Select</button>
+  </div>
+  <div id="ai-mode-info">
+    <div class="rec-banner">
+      <div>
+        <div class="rec-label">AI-Guided Practice</div>
+        <div class="rec-text">The system chooses letters based on your mastery levels and performance history.</div>
+      </div>
+    </div>
+    <div id="aiRecPreview" style="display:none;margin-bottom:16px">
+      <div class="section-label">Recommended for you</div>
+      <div class="rec-queue" id="aiRecQueue"></div>
+    </div>
+  </div>
+  <div id="manual-mode-info" style="display:none">
     <div class="letter-grid" id="letterGrid"></div>
-
     <div class="controls">
-      <button class="btn btn-ghost" onclick="selectAll()">Select All</button>
+      <button class="btn btn-ghost" onclick="selectAll()">All</button>
       <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
-      <span class="select-hint" id="selectHint">0 letters selected</span>
-      <button class="btn btn-primary" id="startBtn" onclick="startSession()" disabled>
-        Start Practice
-      </button>
+      <span class="select-hint" id="selectHint">0 selected</span>
+    </div>
+    <div style="margin-bottom:16px"></div>
+  </div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <button class="btn btn-primary" id="startBtn" onclick="startSession()">Start Practice</button>
+    <button class="btn btn-ghost" onclick="showDashboard()">Dashboard</button>
+  </div>
+</div>
+
+<!-- Screen 2: Practice -->
+<div class="screen" id="screen-practice">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <div class="screen-title">Practice Session</div>
+      <div id="sessionId" style="font-size:11px;font-family:var(--mono);color:var(--muted)"></div>
+    </div>
+    <button class="btn btn-danger" onclick="endSession()">End Session</button>
+  </div>
+  <div class="rec-banner" id="recBanner" style="display:none">
+    <div style="flex:1">
+      <div class="rec-label">Up Next</div>
+      <div class="rec-queue" id="pracRecQueue" style="margin-top:4px"></div>
     </div>
   </div>
-
-  <!-- ── Screen 2: Practice ─────────────────────────────────────────── -->
-  <div class="screen" id="screen-practice">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <div>
-        <div class="screen-title">Practice Session</div>
-        <div class="screen-sub" id="sessionId" style="font-size:11px; font-family:var(--mono)"></div>
+  <div class="practice-layout" style="margin-top:14px">
+    <div>
+      <div class="cam-card">
+        <video id="video" autoplay playsinline muted></video>
+        <div class="cam-overlay" id="camOverlay">Starting camera…</div>
       </div>
-      <button class="btn btn-danger" onclick="endSession()">End Session</button>
+      <div class="cam-actions">
+        <button class="btn btn-primary" id="submitBtn" onclick="submitFrame()">Submit Sign</button>
+        <span style="font-size:12px;color:var(--subtext)">Position hand clearly, then submit</span>
+      </div>
+      <div class="validation-msg" id="validationMsg"></div>
     </div>
-
-    <div class="practice-layout">
-
-      <!-- Webcam -->
-      <div>
-        <div class="cam-card">
-          <video id="video" autoplay playsinline muted></video>
-          <div class="cam-overlay" id="camOverlay">Starting camera…</div>
-        </div>
-        <div class="cam-actions">
-          <button class="btn btn-primary" id="submitBtn" onclick="submitFrame()">
-            Submit Sign
-          </button>
-          <span style="font-size:12px; color:var(--subtext)">
-            Position hand clearly, then submit
-          </span>
-        </div>
-        <div class="validation-msg" id="validationMsg"></div>
-      </div>
-
-      <!-- Right panel -->
+    <div class="right-panel">
       <div class="target-card">
-
-        <!-- Letter queue -->
-        <div>
-          <div class="target-label" style="margin-bottom:8px">Queue</div>
-          <div class="queue-row" id="queueRow"></div>
+        <div class="target-label">Show this sign</div>
+        <div class="target-letter" id="targetLetter">A</div>
+      </div>
+      <div class="ref-card">
+        <div class="target-label" style="margin-bottom:8px">How to sign</div>
+        <div class="ref-tips" id="refTips">–</div>
+      </div>
+      <div class="result-badge" id="resultBadge">
+        <div class="predicted-letter" id="predictedLetter">–</div>
+        <div class="result-detail">
+          <div id="resultText">–</div>
+          <div class="result-sub" id="confidenceText">–</div>
         </div>
-
-        <!-- Target letter -->
-        <div>
-          <div class="target-label">Show this sign</div>
-          <div class="target-letter" id="targetLetter">A</div>
+      </div>
+      <div class="feedback-box" id="feedbackBox"></div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-val" id="statAccuracy">–</div>
+          <div class="stat-lbl">Accuracy</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="accBar" style="width:0%"></div></div>
         </div>
-
-        <!-- Result badge -->
-        <div class="result-badge" id="resultBadge">
-          <div class="predicted-letter" id="predictedLetter">–</div>
-          <div class="result-detail">
-            <div id="resultText">–</div>
-            <div class="result-label" id="confidenceText">–</div>
-          </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-row">
-          <div class="stat-box">
-            <div class="stat-val" id="statAccuracy">–</div>
-            <div class="stat-lbl">Accuracy</div>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar-fill" id="accBar" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-val" id="statCorrect">0</div>
-            <div class="stat-lbl">Correct</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-val" id="statWrong">0</div>
-            <div class="stat-lbl">Incorrect</div>
-          </div>
-        </div>
-
+        <div class="stat-box"><div class="stat-val" id="statCorrect">0</div><div class="stat-lbl">Correct</div></div>
+        <div class="stat-box"><div class="stat-val" id="statWrong">0</div><div class="stat-lbl">Incorrect</div></div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ── Screen 3: Summary ──────────────────────────────────────────── -->
-  <div class="screen" id="screen-summary">
-    <div class="summary-header">
-      <div style="font-size:13px; color:var(--muted); margin-bottom:8px">Session Complete</div>
-      <div class="big-accuracy" id="bigAccuracy">–%</div>
-      <div style="color:var(--subtext); margin-top:8px; font-size:15px" id="summaryMsg">–</div>
-    </div>
+<!-- Screen 3: Summary -->
+<div class="screen" id="screen-summary">
+  <div class="summary-header">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">Session Complete</div>
+    <div class="big-accuracy" id="bigAccuracy">–%</div>
+    <div style="color:var(--subtext);margin-top:8px;font-size:14px" id="summaryMsg">–</div>
+  </div>
+  <div class="summary-grid">
+    <div class="summary-card"><div class="label">Attempts</div><div class="value" id="sumAttempts">–</div></div>
+    <div class="summary-card"><div class="label">Correct</div><div class="value" style="color:var(--accent)" id="sumCorrect">–</div></div>
+    <div class="summary-card"><div class="label">Incorrect</div><div class="value" style="color:var(--wrong)" id="sumWrong">–</div></div>
+    <div class="summary-card"><div class="label">Avg Confidence</div><div class="value" id="sumConf">–</div></div>
+    <div class="summary-card"><div class="label">Duration</div><div class="value" id="sumDuration">–</div></div>
+    <div class="summary-card"><div class="label">Avg Inference</div><div class="value" id="sumInference">–</div></div>
+  </div>
+  <hr class="divider">
+  <div class="section-label">Per-Letter Results</div>
+  <div class="letter-breakdown" id="letterBreakdown"></div>
+  <hr class="divider">
+  <div class="section-label">Recommendations for Next Session</div>
+  <ul class="recs-list" id="recsList"></ul>
+  <div style="display:flex;gap:12px;margin-top:28px;justify-content:center">
+    <button class="btn btn-primary" onclick="restart()">Practice Again</button>
+    <a id="csvLink" class="btn btn-ghost" style="text-decoration:none" target="_blank">Download CSV</a>
+    <button class="btn btn-ghost" onclick="showDashboard()">Dashboard</button>
+  </div>
+</div>
 
-    <div class="summary-grid">
-      <div class="summary-card">
-        <div class="label">Total Attempts</div>
-        <div class="value" id="sumAttempts">–</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Correct</div>
-        <div class="value" style="color:var(--accent)" id="sumCorrect">–</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Incorrect</div>
-        <div class="value" style="color:var(--wrong)" id="sumWrong">–</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Avg Confidence</div>
-        <div class="value" id="sumConf">–</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Duration</div>
-        <div class="value" id="sumDuration">–</div>
-      </div>
-      <div class="summary-card">
-        <div class="label">Avg Inference</div>
-        <div class="value" id="sumInference">–</div>
-      </div>
-    </div>
-
-    <hr class="divider">
-
-    <div class="section-label">Per-Letter Results</div>
-    <div class="letter-breakdown" id="letterBreakdown"></div>
-
-    <hr class="divider">
-
-    <div class="section-label">Recommendations</div>
-    <ul class="recs-list" id="recsList"></ul>
-
-    <div style="display:flex; gap:12px; margin-top:32px; justify-content:center;">
-      <button class="btn btn-primary" onclick="restart()">Practice Again</button>
-      <a id="csvLink" class="btn btn-ghost" style="text-decoration:none" target="_blank">
-        Download CSV
-      </a>
+<!-- Screen 4: Dashboard -->
+<div class="screen" id="screen-dashboard">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <div class="screen-title">Learning Dashboard</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="show('screen-select')">Practice Now</button>
+      <a id="pdfLink" class="btn btn-ghost" style="text-decoration:none" target="_blank">Export PDF</a>
     </div>
   </div>
+  <div class="dash-grid" id="dashGrid"><div style="color:var(--muted);font-size:13px">Loading…</div></div>
+  <hr class="divider">
+  <div class="section-label">Alphabet Mastery States</div>
+  <div class="state-bar" id="stateBar"></div>
+  <hr class="divider">
+  <div class="section-label">Progress Trend (last 5 sessions)</div>
+  <div class="trend-row" id="trendRow"></div>
+  <hr class="divider">
+  <div class="section-label">Strongest & Weakest Letters</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <div>
+      <div style="font-size:11px;color:var(--accent);margin-bottom:8px">▲ Strongest</div>
+      <div id="dashStrongest" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;color:var(--wrong);margin-bottom:8px">▼ Needs Work</div>
+      <div id="dashWeakest" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+  <hr class="divider">
+  <div class="section-label">Recent Sessions</div>
+  <div id="recentSessions"></div>
+</div>
 
 </main>
-
 <canvas id="captureCanvas" style="display:none"></canvas>
-
 <script>
-  // ── Config ─────────────────────────────────────────────────────────────
-  const API       = 'http://localhost:8000/api';
-  const STUDENT   = 'student_1';   // change to logged-in user ID as needed
+const API='http://localhost:8000/api', STUDENT='student_1';
+const SIGN_TIPS={
+  A:'<strong>Fist</strong> with thumb resting on the side of index finger.',
+  B:'<strong>Flat hand</strong> — all fingers straight up, thumb tucked across palm.',
+  C:'<strong>Curved hand</strong> — fingers and thumb form a "C" shape.',
+  D:'<strong>Index finger</strong> points up, other fingers touch thumb forming a circle.',
+  E:'<strong>Bent fingers</strong> — all fingers curl down, thumb tucked under.',
+  F:'<strong>OK sign</strong> — index + thumb touch, three fingers spread up.',
+  G:'<strong>Index points sideways</strong>, thumb out, other fingers curled.',
+  H:'<strong>Two fingers</strong> (index + middle) point sideways together.',
+  I:'<strong>Pinky up</strong>, all other fingers and thumb curled in.',
+  J:'<strong>Pinky up</strong> then trace a "J" motion.',
+  K:'<strong>Index + middle up</strong>, thumb between them pointing forward.',
+  L:'<strong>L-shape</strong> — index up, thumb out, other fingers curled.',
+  M:'<strong>Three fingers</strong> over thumb (index, middle, ring).',
+  N:'<strong>Two fingers</strong> over thumb (index + middle).',
+  O:'<strong>All fingers</strong> curve to meet thumb — form an "O".',
+  P:'Like K but <strong>pointing downward</strong>.',
+  Q:'Like G but <strong>pointing downward</strong>.',
+  R:'<strong>Index + middle crossed</strong>.',
+  S:'<strong>Fist</strong> with thumb across front of fingers.',
+  T:'<strong>Thumb</strong> between index and middle fingers in a fist.',
+  U:'<strong>Index + middle up together</strong>, other fingers curled.',
+  V:'<strong>Peace sign</strong> — index + middle spread.',
+  W:'<strong>Three fingers up</strong> (index, middle, ring) spread.',
+  X:'<strong>Index finger</strong> bent/hooked, others curled.',
+  Y:'<strong>Thumb + pinky out</strong>, other fingers curled.',
+  Z:'<strong>Index finger</strong> traces a "Z" in the air.'
+};
 
-  // ── State ──────────────────────────────────────────────────────────────
-  let selectedLetters = [];
-  let sessionId       = null;
-  let queue           = [];
-  let queueIndex      = 0;
-  let stats           = { correct: 0, wrong: 0, accuracy: 0, avgConf: 0, totalInf: 0, attempts: 0 };
-  let letterResults   = {};  // { "A": { correct:3, total:5 } }
+let mode='ai', selectedLetters=[], sessionId=null, queue=[], queueIndex=0, letterResults={}, aiRecs=[];
 
-  // ── Screens ────────────────────────────────────────────────────────────
-  function show(id) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('tab-ai').classList.toggle('active',m==='ai');
+  document.getElementById('tab-manual').classList.toggle('active',m==='manual');
+  document.getElementById('ai-mode-info').style.display=m==='ai'?'block':'none';
+  document.getElementById('manual-mode-info').style.display=m==='manual'?'block':'none';
+  if(m==='ai') loadAIRecs();
+}
+
+(function buildGrid(){
+  const grid=document.getElementById('letterGrid');
+  for(let i=65;i<=90;i++){
+    const l=String.fromCharCode(i),btn=document.createElement('button');
+    btn.className='letter-btn';btn.textContent=l;btn.id='lb-'+l;
+    btn.onclick=()=>toggleLetter(l);grid.appendChild(btn);
   }
+})();
 
-  // ── Build letter grid ──────────────────────────────────────────────────
-  (function buildGrid() {
-    const grid = document.getElementById('letterGrid');
-    for (let i = 65; i <= 90; i++) {
-      const l = String.fromCharCode(i);
-      const btn = document.createElement('button');
-      btn.className = 'letter-btn';
-      btn.textContent = l;
-      btn.id = 'lb-' + l;
-      btn.onclick = () => toggleLetter(l);
-      grid.appendChild(btn);
-    }
-  })();
+function toggleLetter(l){
+  const idx=selectedLetters.indexOf(l);
+  if(idx===-1) selectedLetters.push(l); else selectedLetters.splice(idx,1);
+  document.getElementById('lb-'+l).classList.toggle('selected',selectedLetters.includes(l));
+  document.getElementById('selectHint').textContent=selectedLetters.length+' selected';
+}
+function selectAll(){for(let i=65;i<=90;i++){const l=String.fromCharCode(i);if(!selectedLetters.includes(l))selectedLetters.push(l);document.getElementById('lb-'+l).classList.add('selected');}document.getElementById('selectHint').textContent='26 selected';}
+function clearAll(){selectedLetters=[];document.querySelectorAll('.letter-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('selectHint').textContent='0 selected';}
 
-  function toggleLetter(l) {
-    const idx = selectedLetters.indexOf(l);
-    if (idx === -1) selectedLetters.push(l);
-    else selectedLetters.splice(idx, 1);
-    document.getElementById('lb-' + l).classList.toggle('selected', selectedLetters.includes(l));
-    updateHint();
-  }
+async function loadAIRecs(){
+  try{
+    const res=await fetch(`${API}/state/${STUDENT}/recommendations`);
+    const data=await res.json();
+    if(!data.success) return;
+    aiRecs=data.data.recommended_queue.map(r=>r.letter);
+    const preview=document.getElementById('aiRecPreview'),queueEl=document.getElementById('aiRecQueue');
+    preview.style.display='block';queueEl.innerHTML='';
+    data.data.recommended_queue.slice(0,8).forEach((r,i)=>{
+      const pill=document.createElement('span');
+      pill.className='rec-pill'+(i===0?' next':'');
+      pill.title=r.reason;pill.textContent=r.letter;
+      queueEl.appendChild(pill);
+    });
+  }catch(e){aiRecs='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');}
+}
 
-  function selectAll() {
-    for (let i = 65; i <= 90; i++) {
-      const l = String.fromCharCode(i);
-      if (!selectedLetters.includes(l)) selectedLetters.push(l);
-      document.getElementById('lb-' + l).classList.add('selected');
-    }
-    updateHint();
-  }
-
-  function clearAll() {
-    selectedLetters = [];
-    document.querySelectorAll('.letter-btn').forEach(b => b.classList.remove('selected'));
-    updateHint();
-  }
-
-  function updateHint() {
-    document.getElementById('selectHint').textContent = `${selectedLetters.length} letter${selectedLetters.length !== 1 ? 's' : ''} selected`;
-    document.getElementById('startBtn').disabled = selectedLetters.length === 0;
-  }
-
-  // ── Start session ──────────────────────────────────────────────────────
-  async function startSession() {
-    document.getElementById('startBtn').disabled = true;
-    document.getElementById('startBtn').innerHTML = '<span class="spinner"></span>Starting…';
-
-    try {
-      const res  = await fetch(`${API}/sessions/start`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ student_id: STUDENT })
-      });
-      const data = await res.json();
-
-      sessionId = data.data.session_id;
-      queue     = [...selectedLetters];
-      queueIndex = 0;
-      stats      = { correct: 0, wrong: 0, accuracy: 0, avgConf: 0, totalInf: 0, attempts: 0 };
-      letterResults = {};
-
-      document.getElementById('sessionId').textContent = 'Session: ' + sessionId;
-      renderQueue();
-      updateTarget();
-      show('screen-practice');
-      startCamera();
-
-    } catch (e) {
-      alert('Failed to start session: ' + e.message);
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('startBtn').textContent = 'Start Practice';
-    }
-  }
-
-  // ── Camera ─────────────────────────────────────────────────────────────
-  async function startCamera() {
-    const video   = document.getElementById('video');
-    const overlay = document.getElementById('camOverlay');
-    overlay.style.display = 'flex';
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      video.srcObject = stream;
-      overlay.style.display = 'none';
-    } catch {
-      overlay.style.display = 'flex';
-      overlay.textContent   = 'Camera access denied. Allow camera and refresh.';
-    }
-  }
-
-  function stopCamera() {
-    const video = document.getElementById('video');
-    if (video.srcObject) {
-      video.srcObject.getTracks().forEach(t => t.stop());
-      video.srcObject = null;
-    }
-  }
-
-  // ── Capture frame as base64 ────────────────────────────────────────────
-  function captureFrame() {
-    const video  = document.getElementById('video');
-    const canvas = document.getElementById('captureCanvas');
-    canvas.width  = video.videoWidth  || 640;
-    canvas.height = video.videoHeight || 480;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    return canvas.toDataURL('image/jpeg', 0.85);
-  }
-
-  // ── Submit frame for assessment ────────────────────────────────────────
-  async function submitFrame() {
-    const btn = document.getElementById('submitBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>Assessing…';
-    clearValidation();
-
-    const frame = captureFrame();
-    const target = queue[queueIndex];
-
-    try {
-      const res  = await fetch(`${API}/assess/frame`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          session_id:    sessionId,
-          student_id:    STUDENT,
-          target_letter: target,
-          frame_base64:  frame
-        })
-      });
-      const data = await res.json();
-
-      if (!data.success) {
-        // Validation failure — show message, don't record
-        showValidation(data.message || 'Frame rejected. Try again.');
-      } else {
-        handleResult(data.data);
-      }
-
-    } catch (e) {
-      showValidation('Network error: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Submit Sign';
-    }
-  }
-
-  function handleResult(d) {
-    // Update stats
-    stats.attempts++;
-    if (d.is_correct) stats.correct++; else stats.wrong++;
-    stats.accuracy = d.session_accuracy;
-    stats.avgConf  = d.avg_confidence;
-
-    // Track per-letter
-    const l = d.target_letter;
-    if (!letterResults[l]) letterResults[l] = { correct: 0, total: 0 };
-    letterResults[l].total++;
-    if (d.is_correct) letterResults[l].correct++;
-
-    // Result badge
-    const badge = document.getElementById('resultBadge');
-    badge.className = 'result-badge show ' + (d.is_correct ? 'correct' : 'incorrect');
-    document.getElementById('predictedLetter').textContent = d.predicted_letter;
-    document.getElementById('resultText').textContent = d.result;
-    document.getElementById('confidenceText').textContent =
-      `Confidence: ${(d.confidence * 100).toFixed(1)}%  ·  ${d.inference_time_ms}ms`;
-
-    // Stats panel
-    document.getElementById('statAccuracy').textContent = d.session_accuracy + '%';
-    document.getElementById('statCorrect').textContent  = d.correct_total;
-    document.getElementById('statWrong').textContent    = d.incorrect_total;
-    document.getElementById('accBar').style.width       = d.session_accuracy + '%';
-
-    // Advance queue after correct or after 3 tries
-    if (d.is_correct) {
-      setTimeout(() => advanceQueue(), 900);
-    }
-  }
-
-  function advanceQueue() {
-    queueIndex++;
-    if (queueIndex >= queue.length) {
-      // All letters done — end session automatically
-      endSession();
+async function startSession(){
+  const btn=document.getElementById('startBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Starting…';
+  try{
+    const res=await fetch(`${API}/sessions/start`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:STUDENT})});
+    const data=await res.json();
+    sessionId=data.data.session_id;letterResults={};
+    if(mode==='ai'){
+      await loadAIRecs();
+      queue=aiRecs.length>0?[...aiRecs]:'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     } else {
-      updateTarget();
-      document.getElementById('resultBadge').className = 'result-badge';
-      clearValidation();
+      if(selectedLetters.length===0){alert('Select at least one letter.');btn.disabled=false;btn.textContent='Start Practice';return;}
+      queue=[...selectedLetters];
     }
-  }
+    queueIndex=0;
+    document.getElementById('sessionId').textContent='Session: '+sessionId;
+    show('screen-practice');updateTarget();updateRecBanner(queue);startCamera();
+  }catch(e){alert('Failed: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Start Practice';}
+}
 
-  function updateTarget() {
-    document.getElementById('targetLetter').textContent = queue[queueIndex] || '–';
-    renderQueue();
-  }
+async function startCamera(){
+  const video=document.getElementById('video'),overlay=document.getElementById('camOverlay');
+  overlay.style.display='flex';
+  try{video.srcObject=await navigator.mediaDevices.getUserMedia({video:true});overlay.style.display='none';}
+  catch{overlay.textContent='Camera access denied. Allow camera and refresh.';}
+}
+function stopCamera(){const v=document.getElementById('video');if(v.srcObject){v.srcObject.getTracks().forEach(t=>t.stop());v.srcObject=null;}}
 
-  function renderQueue() {
-    const row = document.getElementById('queueRow');
-    row.innerHTML = '';
-    queue.forEach((l, i) => {
-      const pill = document.createElement('span');
-      pill.className = 'queue-pill' +
-        (i === queueIndex ? ' active' : i < queueIndex ? ' done' : '');
-      pill.textContent = l;
-      row.appendChild(pill);
+function captureFrame(){
+  const video=document.getElementById('video'),canvas=document.getElementById('captureCanvas');
+  canvas.width=video.videoWidth||640;canvas.height=video.videoHeight||480;
+  canvas.getContext('2d').drawImage(video,0,0);
+  return canvas.toDataURL('image/jpeg',0.85);
+}
+
+async function submitFrame(){
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Assessing…';
+  clearValidation();
+  try{
+    const res=await fetch(`${API}/assess/frame`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session_id:sessionId,student_id:STUDENT,target_letter:queue[queueIndex],frame_base64:captureFrame()})});
+    const data=await res.json();
+    if(!data.success) showValidation(data.message||'Frame rejected.');
+    else handleResult(data.data);
+  }catch(e){showValidation('Network error: '+e.message);}
+  finally{btn.disabled=false;btn.textContent='Submit Sign';}
+}
+
+function handleResult(d){
+  const l=d.target_letter;
+  if(!letterResults[l]) letterResults[l]={correct:0,total:0};
+  letterResults[l].total++;if(d.is_correct) letterResults[l].correct++;
+  const badge=document.getElementById('resultBadge');
+  badge.className='result-badge '+(d.is_correct?'correct':'incorrect');
+  document.getElementById('predictedLetter').textContent=d.predicted_letter;
+  document.getElementById('resultText').textContent=d.result;
+  document.getElementById('confidenceText').textContent=`Confidence: ${(d.confidence*100).toFixed(1)}%  ·  ${d.inference_time_ms}ms`;
+  const fb=d.feedback||{},fbBox=document.getElementById('feedbackBox');
+  if(fb.message||fb.correction_tip){
+    fbBox.innerHTML=(fb.message||'')+(fb.correction_tip?`<br><span class="tip">Tip: ${fb.correction_tip}</span>`:'');
+    fbBox.classList.add('show');
+  }
+  document.getElementById('statAccuracy').textContent=d.session_accuracy+'%';
+  document.getElementById('statCorrect').textContent=d.correct_total;
+  document.getElementById('statWrong').textContent=d.incorrect_total;
+  document.getElementById('accBar').style.width=d.session_accuracy+'%';
+  if(d.recommendation_queue&&d.recommendation_queue.length>0)
+    updateRecBanner(d.recommendation_queue.map(r=>r.letter||r));
+  if(d.is_correct) setTimeout(()=>advanceQueue(d),1000);
+}
+
+function advanceQueue(lastResult){
+  queueIndex++;
+  if(mode==='ai'&&lastResult&&lastResult.recommendation_queue){
+    const practiced=queue.slice(0,queueIndex);
+    const remaining=lastResult.recommendation_queue.map(r=>r.letter||r).filter(l=>!practiced.includes(l));
+    if(remaining.length>0) queue=[...practiced,...remaining];
+  }
+  if(queueIndex>=queue.length||(mode==='ai'&&queueIndex>=10)){endSession();}
+  else{updateTarget();document.getElementById('resultBadge').className='result-badge';document.getElementById('feedbackBox').classList.remove('show');clearValidation();}
+}
+
+function updateTarget(){
+  const l=queue[queueIndex]||'–';
+  document.getElementById('targetLetter').textContent=l;
+  document.getElementById('refTips').innerHTML=SIGN_TIPS[l]||'–';
+  updateRecBanner(queue.slice(queueIndex));
+}
+
+function updateRecBanner(letters){
+  const banner=document.getElementById('recBanner'),qEl=document.getElementById('pracRecQueue');
+  banner.style.display='flex';qEl.innerHTML='';
+  letters.slice(0,6).forEach((l,i)=>{
+    const ltr=typeof l==='string'?l:l.letter;
+    const pill=document.createElement('span');
+    pill.className='rec-pill'+(i===0?' next':'');
+    pill.textContent=ltr;qEl.appendChild(pill);
+  });
+}
+
+function showValidation(msg){const el=document.getElementById('validationMsg');el.textContent=msg;el.classList.add('show');}
+function clearValidation(){document.getElementById('validationMsg').classList.remove('show');}
+
+async function endSession(){
+  stopCamera();
+  try{
+    const res=await fetch(`${API}/sessions/end/${sessionId}`,{method:'PUT'});
+    const data=await res.json();
+    if(data.success) renderSummary(data.data); else renderSummaryFallback();
+  }catch{renderSummaryFallback();}
+  show('screen-summary');loadHeaderStats();
+}
+
+function renderSummary(d){
+  const acc=d.session_accuracy,big=document.getElementById('bigAccuracy');
+  big.textContent=acc+'%';big.className='big-accuracy '+(acc>=80?'high':acc>=50?'mid':'low');
+  document.getElementById('summaryMsg').textContent=acc>=80?'Excellent session!':acc>=60?'Good progress — keep going!':'Keep practicing — consistency is key.';
+  document.getElementById('sumAttempts').textContent=d.total_attempts;
+  document.getElementById('sumCorrect').textContent=d.correct;
+  document.getElementById('sumWrong').textContent=d.incorrect;
+  document.getElementById('sumConf').textContent=d.avg_confidence?(d.avg_confidence*100).toFixed(1)+'%':'–';
+  document.getElementById('sumDuration').textContent=d.duration_seconds?formatDuration(d.duration_seconds):'–';
+  const s=d.summary||{};
+  document.getElementById('sumInference').textContent=s.avg_inference_time?s.avg_inference_time+'ms':'–';
+  const bd=document.getElementById('letterBreakdown');bd.innerHTML='';
+  const la=s.letter_accuracy||letterResults;
+  Object.entries(la).forEach(([letter,val])=>{
+    const a=typeof val==='number'?val:(val.total?Math.round((val.correct/val.total)*100):0);
+    const item=document.createElement('div');
+    item.className='lb-item'+(a===100?' perfect':a<50?' poor':'');
+    item.innerHTML=`<div class="lb-letter">${letter}</div><div class="lb-acc">${a}%</div>`;
+    bd.appendChild(item);
+  });
+  const rl=document.getElementById('recsList');rl.innerHTML='';
+  (s.recommendations||[]).slice(0,5).forEach(r=>{const li=document.createElement('li');li.textContent=r;rl.appendChild(li);});
+  if(!(s.recommendations||[]).length) rl.innerHTML='<li>Great job — no critical issues found.</li>';
+  document.getElementById('csvLink').href=`${API}/reports/student/${STUDENT}/export/csv`;
+}
+
+function renderSummaryFallback(){
+  const attempts=Object.values(letterResults).reduce((s,v)=>s+v.total,0);
+  const correct=Object.values(letterResults).reduce((s,v)=>s+v.correct,0);
+  renderSummary({session_accuracy:attempts?Math.round((correct/attempts)*100):0,total_attempts:attempts,correct,incorrect:attempts-correct,avg_confidence:null,duration_seconds:null,summary:{letter_accuracy:letterResults,recommendations:[]}});
+}
+
+async function showDashboard(){
+  show('screen-dashboard');
+  document.getElementById('dashGrid').innerHTML='<div style="color:var(--muted);font-size:13px">Loading…</div>';
+  document.getElementById('pdfLink').href=`${API}/reports/student/${STUDENT}/export/pdf`;
+  try{
+    const res=await fetch(`${API}/dashboard/${STUDENT}`);
+    const data=await res.json();
+    if(data.success) renderDashboard(data.data);
+  }catch(e){document.getElementById('dashGrid').innerHTML='<div style="color:var(--wrong);font-size:13px">Could not load dashboard.</div>';}
+}
+
+function renderDashboard(d){
+  const grid=document.getElementById('dashGrid');grid.innerHTML='';
+  [{l:'Total Sessions',v:d.total_sessions},{l:'Total Attempts',v:d.total_attempts},
+   {l:'Overall Accuracy',v:d.overall_accuracy+'%'},{l:'Mastery Progress',v:d.mastery_percent+'%'},
+   {l:'Letters Mastered',v:`${d.letters_mastered}/26`},{l:'Day Streak',v:d.consecutive_days+' days'},
+   {l:'Avg Confidence',v:d.avg_confidence?(d.avg_confidence*100).toFixed(1)+'%':'–'},
+   {l:'Avg Inference',v:d.avg_inference_ms+'ms'}
+  ].forEach(c=>{
+    const div=document.createElement('div');div.className='dash-card';
+    div.innerHTML=`<div class="l">${c.l}</div><div class="v">${c.v}</div>`;grid.appendChild(div);
+  });
+  const sb=document.getElementById('stateBar');sb.innerHTML='';
+  const stateLabels={not_attempted:'Not Attempted',learning:'Learning',improving:'Improving',mastered:'Mastered',needs_revision:'Needs Revision'};
+  Object.entries(stateLabels).forEach(([k,label])=>{
+    const count=(d.state_counts||{})[k]||0;if(!count) return;
+    const pill=document.createElement('span');pill.className=`state-pill ${k}`;
+    pill.textContent=`${label}: ${count}`;sb.appendChild(pill);
+  });
+  const tr=document.getElementById('trendRow');tr.innerHTML='';
+  const trend=d.progress_trend||[];
+  if(!trend.length){tr.innerHTML='<div style="color:var(--muted);font-size:12px">Complete a session to see trends.</div>';}
+  else{
+    const max=Math.max(...trend.map(t=>t.accuracy),1);
+    trend.forEach(t=>{
+      const bar=document.createElement('div');bar.className='trend-bar';
+      bar.style.height=((t.accuracy/max)*56+4)+'px';
+      bar.title=`Session ${t.session_number}: ${t.accuracy}%`;tr.appendChild(bar);
     });
   }
+  document.getElementById('dashStrongest').innerHTML=(d.strongest_letters||[]).map(l=>`<span class="rec-pill" style="color:var(--accent);border-color:rgba(74,222,128,.3)">${l}</span>`).join('');
+  document.getElementById('dashWeakest').innerHTML=(d.weakest_letters||[]).map(l=>`<span class="rec-pill" style="color:var(--wrong);border-color:rgba(248,113,113,.3)">${l}</span>`).join('');
+  const rs=document.getElementById('recentSessions');rs.innerHTML='';
+  (d.recent_sessions||[]).forEach(s=>{
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px';
+    div.innerHTML=`<span style="color:var(--subtext)">${s.date}</span><span>${s.total_attempts} attempts</span><span style="color:${s.session_accuracy>=70?'var(--accent)':'var(--wrong)'};font-weight:700">${s.session_accuracy}%</span>`;
+    rs.appendChild(div);
+  });
+  if(!(d.recent_sessions||[]).length) rs.innerHTML='<div style="color:var(--muted);font-size:13px">No completed sessions yet.</div>';
+}
 
-  function showValidation(msg) {
-    const el = document.getElementById('validationMsg');
-    el.textContent = msg;
-    el.classList.add('show');
-  }
+async function loadHeaderStats(){
+  try{
+    const res=await fetch(`${API}/dashboard/${STUDENT}`);
+    const data=await res.json();
+    if(!data.success) return;
+    const d=data.data;
+    document.getElementById('hdrAcc').textContent=d.overall_accuracy+'%';
+    document.getElementById('hdrSessions').textContent=d.total_sessions;
+    document.getElementById('hdrMastered').textContent=`${d.letters_mastered}/26`;
+    document.getElementById('hdrStats').style.display='flex';
+  }catch{}
+}
 
-  function clearValidation() {
-    document.getElementById('validationMsg').classList.remove('show');
-  }
+function formatDuration(secs){const m=Math.floor(secs/60),s=Math.round(secs%60);return m>0?`${m}m ${s}s`:`${s}s`;}
+function restart(){selectedLetters=[];sessionId=null;queue=[];queueIndex=0;letterResults=[];clearAll();setMode('ai');show('screen-select');}
 
-  // ── End session ────────────────────────────────────────────────────────
-  async function endSession() {
-    stopCamera();
-    try {
-      const res  = await fetch(`${API}/sessions/end/${sessionId}`, { method: 'PUT' });
-      const data = await res.json();
-      if (data.success) renderSummary(data.data);
-      else renderSummaryFallback();
-    } catch {
-      renderSummaryFallback();
-    }
-    show('screen-summary');
-  }
-
-  function renderSummary(d) {
-    const acc = d.session_accuracy;
-    const big = document.getElementById('bigAccuracy');
-    big.textContent = acc + '%';
-    big.className   = 'big-accuracy ' + (acc >= 80 ? 'high' : acc >= 50 ? 'mid' : 'low');
-
-    const msgs = [
-      [80, 'Excellent session! Keep it up.'],
-      [60, 'Good progress — a few more reps and you\'ll master these.'],
-      [0,  'Keep practicing — consistency is the key.']
-    ];
-    document.getElementById('summaryMsg').textContent =
-      msgs.find(([t]) => acc >= t)[1];
-
-    document.getElementById('sumAttempts').textContent  = d.total_attempts;
-    document.getElementById('sumCorrect').textContent   = d.correct;
-    document.getElementById('sumWrong').textContent     = d.incorrect;
-    document.getElementById('sumConf').textContent      =
-      d.avg_confidence ? (d.avg_confidence * 100).toFixed(1) + '%' : '–';
-    document.getElementById('sumDuration').textContent  =
-      d.duration_seconds ? formatDuration(d.duration_seconds) : '–';
-
-    const s = d.summary || {};
-    document.getElementById('sumInference').textContent =
-      s.avg_inference_time ? s.avg_inference_time + 'ms' : '–';
-
-    // Per-letter breakdown
-    const bd = document.getElementById('letterBreakdown');
-    bd.innerHTML = '';
-    const la = s.letter_accuracy || letterResults;
-    Object.entries(la).forEach(([letter, val]) => {
-      const acc = typeof val === 'number' ? val :
-        val.total ? Math.round((val.correct / val.total) * 100) : 0;
-      const item = document.createElement('div');
-      item.className = 'lb-item' + (acc === 100 ? ' perfect' : acc < 50 ? ' poor' : '');
-      item.innerHTML = `<div class="lb-letter">${letter}</div>
-                        <div class="lb-acc">${acc}%</div>`;
-      bd.appendChild(item);
-    });
-
-    // Recommendations
-    const rl = document.getElementById('recsList');
-    rl.innerHTML = '';
-    const recs = s.recommendations || [];
-    if (recs.length === 0) {
-      rl.innerHTML = '<li>Great job — no critical issues found.</li>';
-    } else {
-      recs.forEach(r => {
-        const li = document.createElement('li');
-        li.textContent = r;
-        rl.appendChild(li);
-      });
-    }
-
-    // CSV link
-    document.getElementById('csvLink').href =
-      `${API}/reports/student/${STUDENT}/export/csv`;
-  }
-
-  function renderSummaryFallback() {
-    const acc = stats.attempts ? Math.round((stats.correct / stats.attempts) * 100) : 0;
-    renderSummary({
-      session_accuracy: acc,
-      total_attempts:   stats.attempts,
-      correct:          stats.correct,
-      incorrect:        stats.wrong,
-      avg_confidence:   stats.avgConf,
-      duration_seconds: null,
-      summary: { letter_accuracy: letterResults, recommendations: [] }
-    });
-  }
-
-  function formatDuration(secs) {
-    const m = Math.floor(secs / 60);
-    const s = Math.round(secs % 60);
-    return m > 0 ? `${m}m ${s}s` : `${s}s`;
-  }
-
-  function restart() {
-    selectedLetters = [];
-    sessionId       = null;
-    queue           = [];
-    queueIndex      = 0;
-    clearAll();
-    show('screen-select');
-  }
+setMode('ai');loadHeaderStats();
 </script>
 </body>
 </html>
