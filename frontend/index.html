@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Language Practice</title>
+<style>
+  /* ── Tokens ─────────────────────────────────────────────────────────── */
+  :root {
+    --bg:        #0d0f12;
+    --surface:   #161920;
+    --border:    #252830;
+    --accent:    #4ade80;       /* green — correct */
+    --wrong:     #f87171;       /* red  — incorrect */
+    --muted:     #6b7280;
+    --text:      #f1f5f9;
+    --subtext:   #94a3b8;
+    --card:      #1e2330;
+    --radius:    12px;
+    --font:      'Inter', system-ui, sans-serif;
+    --mono:      'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────────────── */
+  header {
+    width: 100%;
+    padding: 18px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+  header .logo { font-size: 13px; font-weight: 600; letter-spacing: .06em;
+                 text-transform: uppercase; color: var(--accent); }
+  header .title { font-size: 15px; color: var(--subtext); }
+
+  main { width: 100%; max-width: 900px; padding: 36px 24px; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ── Letter selection ────────────────────────────────────────────────── */
+  .screen-title {
+    font-size: 22px; font-weight: 700; margin-bottom: 6px;
+  }
+  .screen-sub { color: var(--subtext); font-size: 14px; margin-bottom: 28px; }
+
+  .letter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+  .letter-btn {
+    aspect-ratio: 1;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .letter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .letter-btn.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d0f12;
+  }
+
+  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .select-hint { color: var(--subtext); font-size: 13px; }
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #0d0f12; }
+  .btn-primary:hover:not(:disabled) { opacity: .88; }
+  .btn-danger  { background: var(--wrong);  color: #0d0f12; }
+  .btn-danger:hover:not(:disabled)  { opacity: .88; }
+  .btn-ghost   { background: var(--border); color: var(--text); }
+  .btn-ghost:hover  { background: #2d3240; }
+
+  /* ── Practice screen ────────────────────────────────────────────────── */
+  .practice-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+  }
+  @media (max-width: 720px) {
+    .practice-layout { grid-template-columns: 1fr; }
+  }
+
+  .cam-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    position: relative;
+  }
+  .cam-card video {
+    width: 100%; display: block;
+    background: #000; min-height: 300px;
+  }
+
+  /* Validation overlay */
+  .cam-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(13,15,18,.75);
+    font-size: 14px; color: var(--wrong);
+    padding: 16px; text-align: center;
+    display: none;
+  }
+
+  .cam-actions {
+    padding: 16px;
+    display: flex; gap: 10px; justify-content: space-between; align-items: center;
+  }
+
+  /* Target letter display */
+  .target-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+  .target-label { font-size: 11px; font-weight: 600; letter-spacing: .1em;
+                  text-transform: uppercase; color: var(--muted); }
+
+  .target-letter {
+    font-size: 96px; font-weight: 900; line-height: 1;
+    font-family: var(--mono);
+    color: var(--accent);
+    text-align: center;
+    padding: 12px 0;
+  }
+
+  /* Result badge */
+  .result-badge {
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .result-badge.correct  { background: rgba(74,222,128,.12); border: 1px solid rgba(74,222,128,.3); color: var(--accent); }
+  .result-badge.incorrect{ background: rgba(248,113,113,.12); border: 1px solid rgba(248,113,113,.3); color: var(--wrong);  }
+  .result-badge.show     { display: flex; }
+
+  .predicted-letter {
+    font-family: var(--mono);
+    font-size: 32px; font-weight: 900;
+    min-width: 40px;
+  }
+  .result-detail { display: flex; flex-direction: column; gap: 2px; }
+  .result-label  { font-size: 12px; opacity: .7; font-weight: 400; }
+
+  /* Stats row */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-val { font-size: 22px; font-weight: 800; font-family: var(--mono); color: var(--accent); }
+  .stat-lbl { font-size: 11px; color: var(--subtext); margin-top: 2px; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--border);
+    border-radius: 99px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--accent);
+    border-radius: 99px;
+    transition: width .4s ease;
+  }
+
+  /* Validation message */
+  .validation-msg {
+    background: rgba(248,113,113,.1);
+    border: 1px solid rgba(248,113,113,.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--wrong);
+    display: none;
+  }
+  .validation-msg.show { display: block; }
+
+  /* Letter queue pill */
+  .queue-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;
+  }
+  .queue-pill {
+    padding: 3px 10px;
+    border-radius: 99px;
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 700;
+    font-family: var(--mono);
+    color: var(--subtext);
+  }
+  .queue-pill.active {
+    background: var(--accent);
+    color: #0d0f12;
+    border-color: var(--accent);
+  }
+  .queue-pill.done {
+    background: var(--border);
+    color: var(--muted);
+    text-decoration: line-through;
+  }
+
+  /* ── Summary screen ─────────────────────────────────────────────────── */
+  .summary-header {
+    text-align: center;
+    padding: 32px 0 24px;
+  }
+  .big-accuracy {
+    font-size: 80px; font-weight: 900;
+    font-family: var(--mono);
+    line-height: 1;
+  }
+  .big-accuracy.high  { color: var(--accent); }
+  .big-accuracy.low   { color: var(--wrong);  }
+  .big-accuracy.mid   { color: #facc15; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 24px 0;
+  }
+  .summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .summary-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase;
+                         letter-spacing: .06em; margin-bottom: 8px; }
+  .summary-card .value { font-size: 28px; font-weight: 800; font-family: var(--mono); }
+
+  .letter-breakdown {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    margin-bottom: 28px;
+  }
+  .lb-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .lb-letter { font-size: 24px; font-weight: 800; font-family: var(--mono); }
+  .lb-acc    { font-size: 13px; color: var(--subtext); }
+  .lb-item.perfect { border-color: rgba(74,222,128,.4); }
+  .lb-item.poor    { border-color: rgba(248,113,113,.3); }
+
+  .recs-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .recs-list li {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px; color: var(--subtext);
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .recs-list li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
+
+  /* ── Spinner ────────────────────────────────────────────────────────── */
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,.3);
+    border-top-color: #0d0f12;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    display: inline-block; vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 24px 0;
+  }
+  .section-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">ASL</span>
+  <span class="title">Sign Language Learning & Assessment Platform</span>
+</header>
+
+<main>
+
+  <!-- ── Screen 1: Letter Selection ─────────────────────────────────── -->
+  <div class="screen active" id="screen-select">
+    <div class="screen-title">Choose letters to practice</div>
+    <p class="screen-sub">Select one or more letters, then start your practice session.</p>
+
+    <div class="letter-grid" id="letterGrid"></div>
+
+    <div class="controls">
+      <button class="btn btn-ghost" onclick="selectAll()">Select All</button>
+      <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+      <span class="select-hint" id="selectHint">0 letters selected</span>
+      <button class="btn btn-primary" id="startBtn" onclick="startSession()" disabled>
+        Start Practice
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Screen 2: Practice ─────────────────────────────────────────── -->
+  <div class="screen" id="screen-practice">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div>
+        <div class="screen-title">Practice Session</div>
+        <div class="screen-sub" id="sessionId" style="font-size:11px; font-family:var(--mono)"></div>
+      </div>
+      <button class="btn btn-danger" onclick="endSession()">End Session</button>
+    </div>
+
+    <div class="practice-layout">
+
+      <!-- Webcam -->
+      <div>
+        <div class="cam-card">
+          <video id="video" autoplay playsinline muted></video>
+          <div class="cam-overlay" id="camOverlay">Starting camera…</div>
+        </div>
+        <div class="cam-actions">
+          <button class="btn btn-primary" id="submitBtn" onclick="submitFrame()">
+            Submit Sign
+          </button>
+          <span style="font-size:12px; color:var(--subtext)">
+            Position hand clearly, then submit
+          </span>
+        </div>
+        <div class="validation-msg" id="validationMsg"></div>
+      </div>
+
+      <!-- Right panel -->
+      <div class="target-card">
+
+        <!-- Letter queue -->
+        <div>
+          <div class="target-label" style="margin-bottom:8px">Queue</div>
+          <div class="queue-row" id="queueRow"></div>
+        </div>
+
+        <!-- Target letter -->
+        <div>
+          <div class="target-label">Show this sign</div>
+          <div class="target-letter" id="targetLetter">A</div>
+        </div>
+
+        <!-- Result badge -->
+        <div class="result-badge" id="resultBadge">
+          <div class="predicted-letter" id="predictedLetter">–</div>
+          <div class="result-detail">
+            <div id="resultText">–</div>
+            <div class="result-label" id="confidenceText">–</div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-val" id="statAccuracy">–</div>
+            <div class="stat-lbl">Accuracy</div>
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill" id="accBar" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statCorrect">0</div>
+            <div class="stat-lbl">Correct</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val" id="statWrong">0</div>
+            <div class="stat-lbl">Incorrect</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Screen 3: Summary ──────────────────────────────────────────── -->
+  <div class="screen" id="screen-summary">
+    <div class="summary-header">
+      <div style="font-size:13px; color:var(--muted); margin-bottom:8px">Session Complete</div>
+      <div class="big-accuracy" id="bigAccuracy">–%</div>
+      <div style="color:var(--subtext); margin-top:8px; font-size:15px" id="summaryMsg">–</div>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">Total Attempts</div>
+        <div class="value" id="sumAttempts">–</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Correct</div>
+        <div class="value" style="color:var(--accent)" id="sumCorrect">–</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Incorrect</div>
+        <div class="value" style="color:var(--wrong)" id="sumWrong">–</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Avg Confidence</div>
+        <div class="value" id="sumConf">–</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Duration</div>
+        <div class="value" id="sumDuration">–</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Avg Inference</div>
+        <div class="value" id="sumInference">–</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section-label">Per-Letter Results</div>
+    <div class="letter-breakdown" id="letterBreakdown"></div>
+
+    <hr class="divider">
+
+    <div class="section-label">Recommendations</div>
+    <ul class="recs-list" id="recsList"></ul>
+
+    <div style="display:flex; gap:12px; margin-top:32px; justify-content:center;">
+      <button class="btn btn-primary" onclick="restart()">Practice Again</button>
+      <a id="csvLink" class="btn btn-ghost" style="text-decoration:none" target="_blank">
+        Download CSV
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<canvas id="captureCanvas" style="display:none"></canvas>
+
+<script>
+  // ── Config ─────────────────────────────────────────────────────────────
+  const API       = 'http://localhost:8000/api';
+  const STUDENT   = 'student_1';   // change to logged-in user ID as needed
+
+  // ── State ──────────────────────────────────────────────────────────────
+  let selectedLetters = [];
+  let sessionId       = null;
+  let queue           = [];
+  let queueIndex      = 0;
+  let stats           = { correct: 0, wrong: 0, accuracy: 0, avgConf: 0, totalInf: 0, attempts: 0 };
+  let letterResults   = {};  // { "A": { correct:3, total:5 } }
+
+  // ── Screens ────────────────────────────────────────────────────────────
+  function show(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  // ── Build letter grid ──────────────────────────────────────────────────
+  (function buildGrid() {
+    const grid = document.getElementById('letterGrid');
+    for (let i = 65; i <= 90; i++) {
+      const l = String.fromCharCode(i);
+      const btn = document.createElement('button');
+      btn.className = 'letter-btn';
+      btn.textContent = l;
+      btn.id = 'lb-' + l;
+      btn.onclick = () => toggleLetter(l);
+      grid.appendChild(btn);
+    }
+  })();
+
+  function toggleLetter(l) {
+    const idx = selectedLetters.indexOf(l);
+    if (idx === -1) selectedLetters.push(l);
+    else selectedLetters.splice(idx, 1);
+    document.getElementById('lb-' + l).classList.toggle('selected', selectedLetters.includes(l));
+    updateHint();
+  }
+
+  function selectAll() {
+    for (let i = 65; i <= 90; i++) {
+      const l = String.fromCharCode(i);
+      if (!selectedLetters.includes(l)) selectedLetters.push(l);
+      document.getElementById('lb-' + l).classList.add('selected');
+    }
+    updateHint();
+  }
+
+  function clearAll() {
+    selectedLetters = [];
+    document.querySelectorAll('.letter-btn').forEach(b => b.classList.remove('selected'));
+    updateHint();
+  }
+
+  function updateHint() {
+    document.getElementById('selectHint').textContent = `${selectedLetters.length} letter${selectedLetters.length !== 1 ? 's' : ''} selected`;
+    document.getElementById('startBtn').disabled = selectedLetters.length === 0;
+  }
+
+  // ── Start session ──────────────────────────────────────────────────────
+  async function startSession() {
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').innerHTML = '<span class="spinner"></span>Starting…';
+
+    try {
+      const res  = await fetch(`${API}/sessions/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ student_id: STUDENT })
+      });
+      const data = await res.json();
+
+      sessionId = data.data.session_id;
+      queue     = [...selectedLetters];
+      queueIndex = 0;
+      stats      = { correct: 0, wrong: 0, accuracy: 0, avgConf: 0, totalInf: 0, attempts: 0 };
+      letterResults = {};
+
+      document.getElementById('sessionId').textContent = 'Session: ' + sessionId;
+      renderQueue();
+      updateTarget();
+      show('screen-practice');
+      startCamera();
+
+    } catch (e) {
+      alert('Failed to start session: ' + e.message);
+      document.getElementById('startBtn').disabled = false;
+      document.getElementById('startBtn').textContent = 'Start Practice';
+    }
+  }
+
+  // ── Camera ─────────────────────────────────────────────────────────────
+  async function startCamera() {
+    const video   = document.getElementById('video');
+    const overlay = document.getElementById('camOverlay');
+    overlay.style.display = 'flex';
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      overlay.style.display = 'none';
+    } catch {
+      overlay.style.display = 'flex';
+      overlay.textContent   = 'Camera access denied. Allow camera and refresh.';
+    }
+  }
+
+  function stopCamera() {
+    const video = document.getElementById('video');
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(t => t.stop());
+      video.srcObject = null;
+    }
+  }
+
+  // ── Capture frame as base64 ────────────────────────────────────────────
+  function captureFrame() {
+    const video  = document.getElementById('video');
+    const canvas = document.getElementById('captureCanvas');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  // ── Submit frame for assessment ────────────────────────────────────────
+  async function submitFrame() {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Assessing…';
+    clearValidation();
+
+    const frame = captureFrame();
+    const target = queue[queueIndex];
+
+    try {
+      const res  = await fetch(`${API}/assess/frame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id:    sessionId,
+          student_id:    STUDENT,
+          target_letter: target,
+          frame_base64:  frame
+        })
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        // Validation failure — show message, don't record
+        showValidation(data.message || 'Frame rejected. Try again.');
+      } else {
+        handleResult(data.data);
+      }
+
+    } catch (e) {
+      showValidation('Network error: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Sign';
+    }
+  }
+
+  function handleResult(d) {
+    // Update stats
+    stats.attempts++;
+    if (d.is_correct) stats.correct++; else stats.wrong++;
+    stats.accuracy = d.session_accuracy;
+    stats.avgConf  = d.avg_confidence;
+
+    // Track per-letter
+    const l = d.target_letter;
+    if (!letterResults[l]) letterResults[l] = { correct: 0, total: 0 };
+    letterResults[l].total++;
+    if (d.is_correct) letterResults[l].correct++;
+
+    // Result badge
+    const badge = document.getElementById('resultBadge');
+    badge.className = 'result-badge show ' + (d.is_correct ? 'correct' : 'incorrect');
+    document.getElementById('predictedLetter').textContent = d.predicted_letter;
+    document.getElementById('resultText').textContent = d.result;
+    document.getElementById('confidenceText').textContent =
+      `Confidence: ${(d.confidence * 100).toFixed(1)}%  ·  ${d.inference_time_ms}ms`;
+
+    // Stats panel
+    document.getElementById('statAccuracy').textContent = d.session_accuracy + '%';
+    document.getElementById('statCorrect').textContent  = d.correct_total;
+    document.getElementById('statWrong').textContent    = d.incorrect_total;
+    document.getElementById('accBar').style.width       = d.session_accuracy + '%';
+
+    // Advance queue after correct or after 3 tries
+    if (d.is_correct) {
+      setTimeout(() => advanceQueue(), 900);
+    }
+  }
+
+  function advanceQueue() {
+    queueIndex++;
+    if (queueIndex >= queue.length) {
+      // All letters done — end session automatically
+      endSession();
+    } else {
+      updateTarget();
+      document.getElementById('resultBadge').className = 'result-badge';
+      clearValidation();
+    }
+  }
+
+  function updateTarget() {
+    document.getElementById('targetLetter').textContent = queue[queueIndex] || '–';
+    renderQueue();
+  }
+
+  function renderQueue() {
+    const row = document.getElementById('queueRow');
+    row.innerHTML = '';
+    queue.forEach((l, i) => {
+      const pill = document.createElement('span');
+      pill.className = 'queue-pill' +
+        (i === queueIndex ? ' active' : i < queueIndex ? ' done' : '');
+      pill.textContent = l;
+      row.appendChild(pill);
+    });
+  }
+
+  function showValidation(msg) {
+    const el = document.getElementById('validationMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  function clearValidation() {
+    document.getElementById('validationMsg').classList.remove('show');
+  }
+
+  // ── End session ────────────────────────────────────────────────────────
+  async function endSession() {
+    stopCamera();
+    try {
+      const res  = await fetch(`${API}/sessions/end/${sessionId}`, { method: 'PUT' });
+      const data = await res.json();
+      if (data.success) renderSummary(data.data);
+      else renderSummaryFallback();
+    } catch {
+      renderSummaryFallback();
+    }
+    show('screen-summary');
+  }
+
+  function renderSummary(d) {
+    const acc = d.session_accuracy;
+    const big = document.getElementById('bigAccuracy');
+    big.textContent = acc + '%';
+    big.className   = 'big-accuracy ' + (acc >= 80 ? 'high' : acc >= 50 ? 'mid' : 'low');
+
+    const msgs = [
+      [80, 'Excellent session! Keep it up.'],
+      [60, 'Good progress — a few more reps and you\'ll master these.'],
+      [0,  'Keep practicing — consistency is the key.']
+    ];
+    document.getElementById('summaryMsg').textContent =
+      msgs.find(([t]) => acc >= t)[1];
+
+    document.getElementById('sumAttempts').textContent  = d.total_attempts;
+    document.getElementById('sumCorrect').textContent   = d.correct;
+    document.getElementById('sumWrong').textContent     = d.incorrect;
+    document.getElementById('sumConf').textContent      =
+      d.avg_confidence ? (d.avg_confidence * 100).toFixed(1) + '%' : '–';
+    document.getElementById('sumDuration').textContent  =
+      d.duration_seconds ? formatDuration(d.duration_seconds) : '–';
+
+    const s = d.summary || {};
+    document.getElementById('sumInference').textContent =
+      s.avg_inference_time ? s.avg_inference_time + 'ms' : '–';
+
+    // Per-letter breakdown
+    const bd = document.getElementById('letterBreakdown');
+    bd.innerHTML = '';
+    const la = s.letter_accuracy || letterResults;
+    Object.entries(la).forEach(([letter, val]) => {
+      const acc = typeof val === 'number' ? val :
+        val.total ? Math.round((val.correct / val.total) * 100) : 0;
+      const item = document.createElement('div');
+      item.className = 'lb-item' + (acc === 100 ? ' perfect' : acc < 50 ? ' poor' : '');
+      item.innerHTML = `<div class="lb-letter">${letter}</div>
+                        <div class="lb-acc">${acc}%</div>`;
+      bd.appendChild(item);
+    });
+
+    // Recommendations
+    const rl = document.getElementById('recsList');
+    rl.innerHTML = '';
+    const recs = s.recommendations || [];
+    if (recs.length === 0) {
+      rl.innerHTML = '<li>Great job — no critical issues found.</li>';
+    } else {
+      recs.forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = r;
+        rl.appendChild(li);
+      });
+    }
+
+    // CSV link
+    document.getElementById('csvLink').href =
+      `${API}/reports/student/${STUDENT}/export/csv`;
+  }
+
+  function renderSummaryFallback() {
+    const acc = stats.attempts ? Math.round((stats.correct / stats.attempts) * 100) : 0;
+    renderSummary({
+      session_accuracy: acc,
+      total_attempts:   stats.attempts,
+      correct:          stats.correct,
+      incorrect:        stats.wrong,
+      avg_confidence:   stats.avgConf,
+      duration_seconds: null,
+      summary: { letter_accuracy: letterResults, recommendations: [] }
+    });
+  }
+
+  function formatDuration(secs) {
+    const m = Math.floor(secs / 60);
+    const s = Math.round(secs % 60);
+    return m > 0 ? `${m}m ${s}s` : `${s}s`;
+  }
+
+  function restart() {
+    selectedLetters = [];
+    sessionId       = null;
+    queue           = [];
+    queueIndex      = 0;
+    clearAll();
+    show('screen-select');
+  }
+</script>
+</body>
+</html>

@@ -1,35 +1,23 @@
-from fastapi import APIRouter
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from database import get_db
 from services.progress_service import ProgressService
 
 router = APIRouter()
 progress_service = ProgressService()
 
-class StoreAttemptRequest(BaseModel):
-    student_id: str
-    target_letter: str
-    predicted_letter: str
-    is_correct: bool
-    confidence: float
-    inference_time: float
 
-@router.post("/progress/attempt")
-def store_attempt(request: StoreAttemptRequest):
-    attempt = progress_service.store_attempt(
-        request.student_id,
-        request.target_letter,
-        request.predicted_letter,
-        request.is_correct,
-        request.confidence,
-        request.inference_time
-    )
-    return {
-        "success": True,
-        "message": "Attempt stored successfully",
-        "data": attempt,
-        "timestamp": attempt["timestamp"]
-    }
+@router.get("/progress/{student_id}")
+def get_progress_overview(student_id: str, db: Session = Depends(get_db)):
+    return progress_service.get_progress_overview(db, student_id)
 
-@router.get("/progress/dashboard/{student_id}")
-def get_dashboard(student_id: str):
-    return progress_service.get_dashboard(student_id)
+
+@router.get("/progress/{student_id}/summary/{session_id}")
+def get_session_progress(student_id: str, session_id: str, db: Session = Depends(get_db)):
+    return progress_service.get_session_progress_summary(db, student_id, session_id)
+
+
+@router.get("/progress/{student_id}/alphabet-trends")
+def get_alphabet_trends(student_id: str, db: Session = Depends(get_db)):
+    return progress_service.get_alphabet_trends(db, student_id)
