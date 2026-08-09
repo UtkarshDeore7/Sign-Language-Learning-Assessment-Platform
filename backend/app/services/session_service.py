@@ -7,7 +7,6 @@ import json
 import logging
 from datetime import datetime
 
-from backend.app.services.certification_service import CertificationService
 from sqlalchemy.orm import Session
 
 from models import PracticeSession, AssessmentAttempt, SessionSummary, ProgressMetrics
