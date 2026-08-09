@@ -22,6 +22,7 @@ from api.learner_state    import router as learner_state_router
 from api.reports          import router as reports_router
 from api.dashboard        import router as dashboard_router        # ← NEW
 from api.certification import router as certification_router
+from api.instructor_admin import router as instructor_admin_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,6 +66,7 @@ app.include_router(learner_state_router,     prefix="/api")
 app.include_router(reports_router,           prefix="/api")
 app.include_router(dashboard_router,         prefix="/api")        # ← NEW
 app.include_router(certification_router, prefix="/api")
+app.include_router(instructor_admin_router, prefix="/api")
 
 @app.get("/")
 def root():
