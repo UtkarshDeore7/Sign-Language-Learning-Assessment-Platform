@@ -7,6 +7,7 @@ import json
 import logging
 from datetime import datetime
 
+from backend.app.services.certification_service import CertificationService
 from sqlalchemy.orm import Session
 
 from models import PracticeSession, AssessmentAttempt, SessionSummary, ProgressMetrics
@@ -123,6 +124,9 @@ class SessionService:
 
         summary = self._generate_summary(db, session)
         self._record_progress_metrics(db, session)
+        # Auto-evaluate badges after every session
+        from services.certification_service import CertificationService
+        CertificationService().evaluate_and_award_badges(db, session.student_id)
         logger.info(f"Session ended | {session_id} | acc={session.session_accuracy}%")
 
         return _ok("Session ended. Summary generated.", {

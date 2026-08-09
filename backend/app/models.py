@@ -241,3 +241,21 @@ class ProgressMetrics(Base):
     letters_mastered_count  = Column(Integer, default=0)
 
     recorded_at             = Column(DateTime, default=datetime.utcnow)
+
+    import uuid
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+    id             = Column(Integer, primary_key=True, index=True)
+    certificate_id = Column(String(36), unique=True, default=lambda: str(uuid.uuid4()))
+    student_id     = Column(String(100), nullable=False, index=True)
+    score          = Column(Float, nullable=False)
+    grade          = Column(String(5), nullable=False)
+    issued_at      = Column(DateTime, default=datetime.utcnow)
+
+class Badge(Base):
+    __tablename__ = "badges"
+    id         = Column(Integer, primary_key=True, index=True)
+    student_id = Column(String(100), nullable=False, index=True)
+    badge_id   = Column(String(50),  nullable=False)
+    awarded_at = Column(DateTime, default=datetime.utcnow)
