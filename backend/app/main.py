@@ -21,8 +21,10 @@ from api.assess_frame     import router as assess_frame_router
 from api.learner_state    import router as learner_state_router
 from api.reports          import router as reports_router
 from api.dashboard        import router as dashboard_router        # ← NEW
+from api.notifications    import router as notifications_router
 from api.certification import router as certification_router
 from api.instructor_admin import router as instructor_admin_router
+from api.performance import router as performance_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,8 +67,10 @@ app.include_router(assess_frame_router,      prefix="/api")
 app.include_router(learner_state_router,     prefix="/api")
 app.include_router(reports_router,           prefix="/api")
 app.include_router(dashboard_router,         prefix="/api")        # ← NEW
+app.include_router(notifications_router,     prefix="/api")
 app.include_router(certification_router, prefix="/api")
 app.include_router(instructor_admin_router, prefix="/api")
+app.include_router(performance_router, prefix="/api")
 
 @app.get("/")
 def root():

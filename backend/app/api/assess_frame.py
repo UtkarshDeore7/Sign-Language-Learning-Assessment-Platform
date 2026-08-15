@@ -96,9 +96,16 @@ def assess_frame(request: AssessFrameRequest, db: Session = Depends(get_db)):
         }
 
     predicted_letter = pred_result.prediction
+    
+    # --- ADD THIS FIX HERE ---
+    # Prevent database crash by shrinking the word to fit VARCHAR(5)
+    if predicted_letter == "UNCERTAIN":
+        predicted_letter = "?"
+    # -------------------------
+        
     confidence       = pred_result.confidence
     is_correct       = predicted_letter.upper() == request.target_letter.upper()
-
+    
     # ── 4. Record attempt (also updates state machine internally) ─────────
     record_result = _session_svc.record_attempt(
         db,

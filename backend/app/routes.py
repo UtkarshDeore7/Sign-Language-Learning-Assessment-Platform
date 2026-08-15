@@ -33,6 +33,25 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     token = create_access_token({"sub": db_user.email})
     return {"access_token": token, "token_type": "bearer"}
 
+@router.get("/auth/me")
+def get_current_user_info(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    user = db.query(User).filter(User.email == current_user).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "success": True,
+        "data": {
+            "user_id":   user.id,
+            "email":     user.email,
+            "full_name": user.full_name,
+            "role_id":   user.role_id,
+            "role":      "learner"
+        }
+    }
+
 @router.post("/profile/create", response_model=LearnerProfileResponse)
 def create_profile(
     profile: LearnerProfileCreate,

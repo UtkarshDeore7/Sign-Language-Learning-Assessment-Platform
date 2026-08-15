@@ -259,3 +259,14 @@ class Badge(Base):
     student_id = Column(String(100), nullable=False, index=True)
     badge_id   = Column(String(50),  nullable=False)
     awarded_at = Column(DateTime, default=datetime.utcnow)
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id         = Column(Integer, primary_key=True, index=True)
+    student_id = Column(String(100), nullable=False, index=True)
+    type       = Column(String(50),  nullable=False)
+    title      = Column(String(200), nullable=False)
+    message    = Column(String(500), nullable=False)
+    is_read    = Column(Boolean, default=False)
+    data       = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

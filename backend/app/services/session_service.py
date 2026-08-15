@@ -126,6 +126,11 @@ class SessionService:
         # Auto-evaluate badges after every session
         from services.certification_service import CertificationService
         CertificationService().evaluate_and_award_badges(db, session.student_id)
+        from services.notification_service import NotificationService
+        NotificationService().on_session_completed(
+            db, session.student_id,
+            session.session_accuracy, session.total_attempts
+        )
         logger.info(f"Session ended | {session_id} | acc={session.session_accuracy}%")
 
         return _ok("Session ended. Summary generated.", {

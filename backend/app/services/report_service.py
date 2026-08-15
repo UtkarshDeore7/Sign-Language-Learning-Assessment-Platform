@@ -391,3 +391,149 @@ class ReportService:
 
         doc.build(story)
         return buffer.getvalue()
+
+def export_student_excel(self, db: Session, student_id: str) -> bytes:
+        """
+        Export full student performance report as Excel workbook.
+        Three sheets: Summary, All Attempts, Session History.
+        """
+        try:
+            import openpyxl
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            from openpyxl.utils import get_column_letter
+        except ImportError:
+            raise RuntimeError("openpyxl not installed. Run: pip install openpyxl")
+
+        from models import PracticeSession, AssessmentAttempt, SessionSummary
+
+        wb = openpyxl.Workbook()
+
+        # ── Styles ──────────────────────────────────────────────────────────
+        header_font    = Font(bold=True, color="FFFFFF")
+        header_fill    = PatternFill("solid", fgColor="1a237e")
+        accent_fill    = PatternFill("solid", fgColor="4ade80")
+        center         = Alignment(horizontal="center")
+        thin           = Side(style="thin")
+        border         = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        def style_header(ws, row, cols):
+            for col in range(1, cols + 1):
+                cell = ws.cell(row=row, column=col)
+                cell.font      = header_font
+                cell.fill      = header_fill
+                cell.alignment = center
+                cell.border    = border
+
+        def style_row(ws, row, cols, alt=False):
+            fill = PatternFill("solid", fgColor="DCE6F1" if alt else "FFFFFF")
+            for col in range(1, cols + 1):
+                cell = ws.cell(row=row, column=col)
+                cell.fill   = fill
+                cell.border = border
+
+        # ── Sheet 1: Summary ────────────────────────────────────────────────
+        ws1 = wb.active
+        ws1.title = "Performance Summary"
+
+        report = self.get_student_performance_report(db, student_id)["data"]
+
+        ws1.column_dimensions["A"].width = 30
+        ws1.column_dimensions["B"].width = 20
+
+        ws1["A1"] = "Sign Language Platform — Student Report"
+        ws1["A1"].font = Font(bold=True, size=14, color="1a237e")
+        ws1.merge_cells("A1:B1")
+
+        ws1["A2"] = f"Student ID: {student_id}"
+        ws1["A3"] = f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+
+        rows = [
+            ("Total Sessions",         report["total_sessions"]),
+            ("Total Attempts",         report["total_attempts"]),
+            ("Overall Accuracy",       f"{report['overall_accuracy']}%"),
+            ("Current Session Acc.",   f"{report['current_session_accuracy']}%"),
+            ("Avg Confidence",         f"{report['avg_confidence'] * 100:.1f}%"),
+            ("Avg Inference Time",     f"{report['avg_inference_time_ms']} ms"),
+            ("Strongest Alphabets",    ", ".join(report["strongest_alphabets"])),
+            ("Weakest Alphabets",      ", ".join(report["weakest_alphabets"])),
+        ]
+
+        ws1["A5"] = "Metric"
+        ws1["B5"] = "Value"
+        style_header(ws1, 5, 2)
+
+        for i, (label, value) in enumerate(rows, start=6):
+            ws1[f"A{i}"] = label
+            ws1[f"B{i}"] = value
+            style_row(ws1, i, 2, alt=(i % 2 == 0))
+
+        # Per-letter accuracy
+        start = 6 + len(rows) + 2
+        ws1[f"A{start}"] = "Letter"
+        ws1[f"B{start}"] = "Accuracy (%)"
+        style_header(ws1, start, 2)
+        for j, (letter, acc) in enumerate(
+            sorted(report["letter_accuracy"].items()), start=start + 1
+        ):
+            ws1[f"A{j}"] = letter
+            ws1[f"B{j}"] = acc
+            style_row(ws1, j, 2, alt=(j % 2 == 0))
+
+        # ── Sheet 2: All Attempts ───────────────────────────────────────────
+        ws2 = wb.create_sheet("All Attempts")
+        headers = ["#", "Session ID", "Target", "Predicted",
+                   "Correct", "Confidence", "Inference (ms)", "Timestamp"]
+        for col, h in enumerate(headers, 1):
+            ws2.cell(row=1, column=col, value=h)
+            ws2.column_dimensions[get_column_letter(col)].width = 18
+        style_header(ws2, 1, len(headers))
+
+        attempts = db.query(AssessmentAttempt).filter(
+            AssessmentAttempt.student_id == str(student_id)
+        ).order_by(AssessmentAttempt.timestamp.asc()).all()
+
+        for i, a in enumerate(attempts, start=2):
+            row = [
+                a.attempt_number, a.session_id[:8] + "…",
+                a.target_letter, a.predicted_letter,
+                "Yes" if a.is_correct else "No",
+                round(a.confidence, 4), round(a.inference_time_ms, 2),
+                a.timestamp.strftime("%Y-%m-%d %H:%M")
+            ]
+            for col, val in enumerate(row, 1):
+                ws2.cell(row=i, column=col, value=val)
+            style_row(ws2, i, len(headers), alt=(i % 2 == 0))
+
+        # ── Sheet 3: Session History ────────────────────────────────────────
+        ws3 = wb.create_sheet("Session History")
+        s_headers = ["Session #", "Date", "Duration (s)",
+                     "Attempts", "Correct", "Accuracy (%)", "Avg Confidence"]
+        for col, h in enumerate(s_headers, 1):
+            ws3.cell(row=1, column=col, value=h)
+            ws3.column_dimensions[get_column_letter(col)].width = 16
+        style_header(ws3, 1, len(s_headers))
+
+        sessions = db.query(PracticeSession).filter(
+            PracticeSession.student_id == str(student_id),
+            PracticeSession.status     == "completed"
+        ).order_by(PracticeSession.created_at.asc()).all()
+
+        for i, s in enumerate(sessions, start=2):
+            row = [
+                i - 1,
+                s.start_time.strftime("%Y-%m-%d %H:%M"),
+                s.total_duration_secs,
+                s.total_attempts,
+                s.correct_attempts,
+                s.session_accuracy,
+                round(s.avg_confidence * 100, 1)
+            ]
+            for col, val in enumerate(row, 1):
+                ws3.cell(row=i, column=col, value=val)
+            style_row(ws3, i, len(s_headers), alt=(i % 2 == 0))
+
+        # ── Save ────────────────────────────────────────────────────────────
+        import io
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue()

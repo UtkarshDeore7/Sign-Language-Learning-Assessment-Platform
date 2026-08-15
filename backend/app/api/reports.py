@@ -93,3 +93,16 @@ def session_progress_summary(
 @router.get("/progress/{student_id}/alphabet-trends")
 def alphabet_trends(student_id: str, db: Session = Depends(get_db)):
     return progress.get_alphabet_trends(db, student_id)
+
+@router.get("/reports/student/{student_id}/export/excel")
+def export_excel(student_id: str, db: Session = Depends(get_db)):
+    try:
+        excel_bytes = reports.export_student_excel(db, student_id)
+        filename    = f"student_{student_id}_report.xlsx"
+        return StreamingResponse(
+            io.BytesIO(excel_bytes),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except RuntimeError as e:
+        return {"success": False, "message": str(e), "data": None}
