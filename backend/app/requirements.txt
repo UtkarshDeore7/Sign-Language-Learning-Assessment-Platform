@@ -14,4 +14,5 @@ pandas
 pydantic[email]
 python-dotenv
 scikit-learn
-psutil
+psutilopenpyxl
+reportlab

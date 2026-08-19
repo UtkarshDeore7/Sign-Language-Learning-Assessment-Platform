@@ -342,6 +342,14 @@ main{max-width:1080px;width:100%;margin:0 auto;padding:26px 18px;}
 
 <script src="config.js"></script>
 <script>
+// Suppress Chrome extension message channel errors that don't affect our app
+window.addEventListener('unhandledrejection', function(e) {
+  if (e.reason && e.reason.message && (
+    e.reason.message.includes('message channel') ||
+    e.reason.message.includes('Extension context')
+  )) { e.preventDefault(); }
+});
+
 var CFG = { API: (window.API_BASE || 'http://localhost:8000/api') };
 var TIPS = {A:'<strong>Fist</strong> with thumb on side of index finger.',B:'<strong>Flat hand</strong> — fingers up, thumb across palm.',C:'<strong>Curved hand</strong> — form a "C" shape.',D:'<strong>Index up</strong>, other fingers circle to thumb.',E:'<strong>Fingers bent</strong> down, thumb tucked under.',F:'<strong>OK sign</strong> — index+thumb touch, 3 fingers up.',G:'<strong>Index sideways</strong>, thumb out.',H:'<strong>Index+middle sideways</strong> together.',I:'<strong>Pinky up</strong>, others curled.',J:'<strong>Pinky up</strong>, trace a "J".',K:'<strong>Index+middle up</strong>, thumb between them.',L:'<strong>L-shape</strong> — index up, thumb out.',M:'<strong>3 fingers over thumb</strong>.',N:'<strong>2 fingers over thumb</strong>.',O:'<strong>All fingers</strong> meet thumb — form "O".',P:'Like K but <strong>pointing down</strong>.',Q:'Like G but <strong>pointing down</strong>.',R:'<strong>Index+middle crossed</strong>.',S:'<strong>Fist</strong> with thumb across fingers.',T:'<strong>Thumb between</strong> index+middle.',U:'<strong>Index+middle up</strong> together.',V:'<strong>Peace sign</strong> — index+middle spread.',W:'<strong>3 fingers spread</strong> — index, middle, ring.',X:'<strong>Index hooked</strong>, others curled.',Y:'<strong>Thumb+pinky out</strong>.',Z:'<strong>Index traces "Z"</strong>.'};
 var auth = {token:null,uid:null,name:null,role:'learner'};
@@ -382,17 +390,27 @@ function showScr(id){
 
 function enterApp(){
   try{
-    var loginScr=el('sl');
-    if(loginScr) loginScr.classList.remove('on');
-    var mainApp=el('app');
-    if(mainApp){mainApp.style.display='flex';}
-    var hdu=el('hdu');
-    if(hdu) hdu.textContent=auth.name||'';
-    if(auth.role==='instructor'){var ni=el('nt-instructor');if(ni)ni.classList.remove('hide');}
-    if(auth.role==='admin'||auth.role==='administrator'){var na=el('nt-admin');if(na)na.classList.remove('hide');}
+    // Explicitly hide the login screen and show the app container
+    var loginScr = document.getElementById('sl');
+    if (loginScr) {
+      loginScr.style.setProperty('display', 'none', 'important');
+    }
+    
+    var mainApp = document.getElementById('app');
+    if (mainApp) {
+      mainApp.style.setProperty('display', 'flex', 'important');
+    }
+
+    var hdu = el('hdu');
+    if (hdu) hdu.textContent = auth.name || '';
+    if (auth.role === 'instructor') { var ni = el('nt-instructor'); if (ni) ni.classList.remove('hide'); }
+    if (auth.role === 'admin' || auth.role === 'administrator') { var na = el('nt-admin'); if (na) na.classList.remove('hide'); }
+    
     switchTab('dashboard');
     loadNotifs();
-  }catch(e){console.error('enterApp error:',e);}
+  } catch(e) {
+    console.error('enterApp error:', e);
+  }
 }
 
 function switchTab(tab){
@@ -425,33 +443,22 @@ el('liPw').onkeydown=function(e){if(e.key==='Enter')doLogin();};
 el('loBtn').onclick=doLogout;
 
 async function doLogin(){
-  console.log('doLogin called');
   var btn=el('liBtn'),err=el('liErr');
   var em=el('liEm').value.trim(),pw=el('liPw').value;
-  console.log('email:', em, 'pass length:', pw.length);
   err.style.display='none';
   if(!em||!pw){err.textContent='Please enter email and password.';err.style.display='block';return;}
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Signing in…';
-  console.log('calling login API...');
   try{
-    var d=await fetch(CFG.API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:em,password:pw})}).then(function(r){return r.json();});
-    console.log('login response:', d.token_type, 'token ok:', !!d.access_token);
+    var d=await api('/auth/login',{method:'POST',body:JSON.stringify({email:em,password:pw})});
     auth.token=d.access_token;
-    var p={};
-    try{
-      p=await fetch(CFG.API+'/auth/me',{headers:{'Authorization':'Bearer '+auth.token}}).then(function(r){return r.json();});
-      console.log('me response:', JSON.stringify(p.data));
-    }catch(me){console.log('me failed:',me.message);}
-    auth.uid=String((p.data&&p.data.user_id)||1);
-    auth.name=(p.data&&p.data.full_name)||em;
+    var p={};try{ p=await api('/auth/me'); }catch(e){}
+    auth.uid=String((p.data&&p.data.user_id)||p.user_id||d.user_id||1);
+    auth.name=(p.data&&p.data.full_name)||p.full_name||em;
     auth.role=(p.data&&p.data.role)||'learner';
     localStorage.setItem('asl_t',auth.token);localStorage.setItem('asl_u',auth.uid);
     localStorage.setItem('asl_n',auth.name);localStorage.setItem('asl_r',auth.role);
-    console.log('calling enterApp, uid='+auth.uid);
     enterApp();
-    console.log('enterApp done');
   }catch(e){
-    console.log('login error:',e.message);
     err.textContent=e.message.includes('Incorrect')||e.message.includes('401')?'Invalid email or password.':e.message;
     err.style.display='block';
   }finally{btn.disabled=false;btn.textContent='Sign In';}
