@@ -18,3 +18,5 @@ psutilopenpyxl
 reportlab
 openpyxl
 reportlab
+openpyxl
+reportlab
