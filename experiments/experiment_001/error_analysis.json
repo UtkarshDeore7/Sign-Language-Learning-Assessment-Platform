@@ -1,0 +1,57 @@
+{
+  "top_confused_pairs": [
+    {
+      "true": "N",
+      "predicted": "M",
+      "count": 17
+    },
+    {
+      "true": "M",
+      "predicted": "N",
+      "count": 4
+    },
+    {
+      "true": "O",
+      "predicted": "D",
+      "count": 4
+    },
+    {
+      "true": "D",
+      "predicted": "O",
+      "count": 3
+    },
+    {
+      "true": "E",
+      "predicted": "S",
+      "count": 3
+    }
+  ],
+  "worst_performing_classes": [
+    {
+      "class": "N",
+      "f1_score": 0.9319
+    },
+    {
+      "class": "M",
+      "f1_score": 0.9347
+    },
+    {
+      "class": "X",
+      "f1_score": 0.9797
+    },
+    {
+      "class": "S",
+      "f1_score": 0.9831
+    },
+    {
+      "class": "R",
+      "f1_score": 0.9831
+    }
+  ],
+  "possible_reasons": [
+    "Similar finger positions between certain letters",
+    "Background noise in dataset images",
+    "Lighting variations affecting landmark detection",
+    "Occlusion of certain fingers in similar poses"
+  ]
+}

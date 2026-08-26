@@ -1,0 +1,30 @@
+{
+  "best_model": "RandomForest",
+  "best_accuracy": 0.9864,
+  "comparison": [
+    {
+      "Algorithm": "RandomForest",
+      "Training Time": 65.46,
+      "Accuracy": 0.9864,
+      "Precision": 0.9865,
+      "Recall": 0.9864,
+      "F1 Score": 0.9864
+    },
+    {
+      "Algorithm": "DecisionTree",
+      "Training Time": 10.98,
+      "Accuracy": 0.9698,
+      "Precision": 0.9698,
+      "Recall": 0.9698,
+      "F1 Score": 0.9698
+    },
+    {
+      "Algorithm": "KNN",
+      "Training Time": 0.13,
+      "Accuracy": 0.9858,
+      "Precision": 0.9859,
+      "Recall": 0.9858,
+      "F1 Score": 0.9858
+    }
+  ]
+}

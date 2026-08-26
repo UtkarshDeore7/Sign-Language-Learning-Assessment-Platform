@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Python cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments
+venv/
+env/
+.env
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Large data files (mounted as volume instead)
+experiments/
+data/
+datasets/
+
+# Node (if any frontend build tools)
+node_modules/
+npm-debug.log
+
+# Test files
+tests/
+*.test.py
+pytest_cache/

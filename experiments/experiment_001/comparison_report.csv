@@ -1,0 +1,4 @@
+Algorithm,Training Time,Accuracy,Precision,Recall,F1 Score
+RandomForest,65.46,0.9864,0.9865,0.9864,0.9864
+DecisionTree,10.98,0.9698,0.9698,0.9698,0.9698
+KNN,0.13,0.9858,0.9859,0.9858,0.9858

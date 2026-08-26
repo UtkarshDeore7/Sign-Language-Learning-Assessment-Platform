@@ -1,0 +1,37 @@
+{
+  "experiment_id": "experiment_001",
+  "date": "2026-07-16",
+  "engineer": "Utkarsh Deore",
+  "dataset_version": "v1.0",
+  "feature_version": "normalized_wrist_relative",
+  "model_used": "RandomForest",
+  "parameters": {
+    "n_estimators": 100,
+    "max_depth": null,
+    "min_samples_leaf": 1,
+    "random_state": 42
+  },
+  "dataset": {
+    "total_samples": 63579,
+    "train_size": 44505,
+    "validation_size": 9537,
+    "test_size": 9537,
+    "num_classes": 28,
+    "num_features": 63,
+    "normalization": "wrist_relative_scaled"
+  },
+  "results": {
+    "validation_accuracy": 0.9864,
+    "validation_f1": 0.9864,
+    "training_time_seconds": 65.46,
+    "inference_time_ms": 4.94,
+    "throughput_per_second": 202.23,
+    "model_size_kb": 72141.23
+  },
+  "comparison": {
+    "RandomForest": {"accuracy": 0.9864, "training_time": 65.46},
+    "DecisionTree": {"accuracy": 0.9698, "training_time": 10.98},
+    "KNN": {"accuracy": 0.9858, "training_time": 0.13}
+  },
+  "notes": "Baseline experiment using Random Forest on wrist-relative normalized landmarks. Model is production-ready and suitable for real-time inference."
+}
